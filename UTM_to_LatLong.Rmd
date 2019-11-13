@@ -1,0 +1,64 @@
+---
+title: "UTM to Decimal Degrees"
+author: "Erika Barthelmess"
+date: "11/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Code for converting UTM coordinates to decimal degrees
+
+In order to upload our camera data to the eMammal interface, we need to convert from the UTM camera coordinates to decimal degrees.  Here is the code to do so.
+
+Code requires a text file with the camera names/forest locations as well as the UTM coordinates.
+
+## Step 1.  Prepare the workspace
+```{r}
+rm(list = ls())
+library(dplyr)
+library(ggplot2)
+library(readr)
+```
+## Step 2.  Pull in the data
+
+Our data are stored in a text file.  
+
+```{r}
+DF <- read_csv("Camera info/SnapUSA.txt")
+```
+
+## Step 3. Load required packages for spatial data
+```{r}
+library(rgdal)
+library(spatial)
+```
+## Step 4.  Do conversion
+
+First we need to extract the two utm columns into a matrix:
+```{r}
+locs<-cbind(DF$POINT_X, DF$POINT_Y)
+row.names(locs)<- 1:nrow(locs)
+str(locs)
+```
+Now convert the matrix values into spatial points
+```{r}
+locs_crs<-CRS("+proj=utm +zone18 +north +datum=NAD83")
+locs_sp<-SpatialPoints(locs, proj4string = locs_crs)
+summary(locs_sp)
+```
+Now we can convert to lat/long
+```{r}
+lat_long<-spTransform(locs_sp, CRS("+proj=longlat +datum=WGS84"))
+```
+Now take a look
+```{r}
+summary(lat_long)
+```
+Now extract just the coordinates from teh spatial object
+```{r}
+lat_long$coords
+```
+

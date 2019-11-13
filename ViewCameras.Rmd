@@ -1,0 +1,80 @@
+---
+title: "View Cameras"
+author: "Erika Barthelmess"
+date: "11/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Code to make camera locations spatial and view them on a map
+
+##Step 1.  Set up workspace
+```{r}
+rm(list = ls())
+library(dplyr)
+library(ggplot2)
+library(readr)
+```
+## Step 2.  Pull in the data
+```{r}
+DF <- read_csv("Camera info/snapshot_lat_long.txt")
+```
+
+## Step 3. Load required packages for spatial data
+```{r}
+library(rgdal)
+library(sp)
+```
+Now let's rename the POINT_X and POINT_Y columns to "Long" and "Lat"
+
+```{r}
+library(plyr)
+DF<-rename(DF, c("POINT_X"="Long", "POINT_Y" = "Lat"))
+```
+
+## Step 4. 
+Convert DF to spatial data and set projection
+```{r}
+coords<-SpatialPoints(DF[c("Long", "Lat")], proj4string=CRS("+proj=longlat +datum=WGS84"))
+DF<-SpatialPointsDataFrame(coords, DF)
+
+
+```
+## Now plot
+```{r}
+cameras<-plot(DF)
+cameras
+```
+Provides basic plot of locations.
+
+
+
+Let's use the leaflet package to get a fancy plot that shows us where the cameras are relative to the landscape and political boundaries.
+
+```{r}
+library(leaflet)
+```
+Now get the map midpoint
+```{r}
+mid_long<-median(DF$Long)
+mid_lat<-median(DF$Lat)
+map<-leaflet(data = DF,options = leafletOptions(minZoom = 0, maxZoom = 18)) 
+setView(map, mid_long, mid_lat, zoom = 10)
+map %>% addMarkers(lat = ~Lat, lng = ~Long) %>% addTiles()
+```
+It worked!
+
+Now let's see if we can add a popup that identifies the camera number
+Requires htmltools package
+```{r}
+library(htmltools)
+DF$Camera_Num<-as.character(DF$Camera_Num)#because addMarkers label requires chr
+map %>%  addTiles() %>% addMarkers(lat = ~Lat, lng = ~Long, label= ~htmlEscape(Camera_Num)) 
+
+```
+
+
